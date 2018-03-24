@@ -3,7 +3,7 @@ from src.utils.Pathfinder import Pathfinder
 import networkx as nx
 from networkx.algorithms.shortest_paths import dijkstra_path, dijkstra_path_length
 from src.symbols.ObjectSymbols import ObjectSymbols
-from .Command import Command
+
 
 
 class MyBot(Bot):
@@ -11,18 +11,21 @@ class MyBot(Bot):
     def __init__(self):
         super().__init__()
         self.previous_health = None
-        self.counter = 0
+        self.previous_location = None
+        self.counter = 0  # Counts number of turns
         self.my_pathfinder = MyPathfinder()
-        self.run_to_base = False
+        self.run_to_base = False  # If we need to go back to base before
 
     def get_name(self):
         # Find a name for your bot
         return 'Invader'
 
-    def end_turn_routine(self, hp):
+    def end_turn_routine(self, hp, position):
         self.previous_health = hp
+        self.previous_location = position
 
     def turn(self, game_state, character_state, other_bots):
+        print(character_state)
         self.counter += 1
         # Your bot logic goes here
         super().turn(game_state, character_state, other_bots)
@@ -34,28 +37,49 @@ class MyBot(Bot):
 
         # Get back to base on time
         return_time = self.my_pathfinder.get_path_length(position, base)
+
         if self.counter + return_time >= 980 - return_time or self.run_to_base:
             self.run_to_base = True
             direction = self.my_pathfinder.get_next_direction(position, base)
+
             if position == base:
                 self.run_to_base = False
-                self.end_turn_routine(hp)
+                self.end_turn_routine(hp, position)
                 return self.commands.store()
-            self.end_turn_routine(hp)
+
+            self.end_turn_routine(hp, position)
             return self.commands.move(direction)
 
         # Heal to full when in base
         if position == base and hp != 100:
             self.run_to_base = False
-            self.end_turn_routine(hp)
+            self.end_turn_routine(hp, position)
             return self.commands.rest()
 
-        # Collect mineral
+        # Harass low nearby
+        game_status = game_state.splitlines()
+        x_pos = position[1]
+        y_pos = position[0]
+
+        attack_possibilities = get_attack_possibilities(game_status, x_pos, y_pos)
+        potential_target = get_potential_target(other_bots, attack_possibilities)
+        print("POTENTIAL TARGET:", potential_target)
+        # Add new position to potential target
+
+        if len(potential_target) != 0:
+            lowest_hp_enemy = other_bots[0]
+            for target in potential_target:
+                if target['health'] <= lowest_hp_enemy['health']:
+                    lowest_hp_enemy = target if target['carrying'] >= lowest_hp_enemy['carrying'] else lowest_hp_enemy
+
+            # print(potential_target)
+            # print(lowest_hp_enemy)
 
         # Find the position of the junk on the map
         junk_position = list()
         c = r = 0
-        for row in game_state.splitlines():
+
+        for row in game_status:
             if 'J' in row:
                 for column in row:
                     if 'J' == column:
@@ -69,36 +93,62 @@ class MyBot(Bot):
 
         # Mines as long as its not attacked
         if position in junk_position and self.previous_health == hp:
-            self.end_turn_routine(hp)
+            self.end_turn_routine(hp, position)
             return self.commands.collect()
 
         # Select goal for mining
         goal = junk_position[0]
+
         for deposit in junk_position:
-            if self.get_path_length(position, deposit) < self.get_path_length(position, goal):
+            if self.my_pathfinder.get_path_length(position, deposit) < self.my_pathfinder.get_path_length(position, goal):
                 goal = deposit
+
+        # When get attack
 
         # Move towards goal
         direction = self.my_pathfinder.get_next_direction(self.character_state['location'], goal)
+
         if direction:
-            self.end_turn_routine(hp)
+            self.end_turn_routine(hp, position)
             return self.commands.move(direction)
         else:
-            self.end_turn_routine(hp)
+            self.end_turn_routine(hp, position)
             return self.commands.idle()
 
         
         # Defense tactic
         # need to create old position 
-        if self.previous_health > hp and previous_position!='S':
-            #finding which bot is the one attacking
-            # get other bot ID and health
-            target_ID = other_bots.ID
-            if other_bots.health >hp:
+        previous_x = previous_position[0] 
+        previous_y = previous_position[1]
+
+        game_status = game_state.splitlines()
+        
+        if game_status[previous_x][previous_y] == 'S':
+           spike = True
+
+        
+        if self.previous_health > hp and not spike:
+
+            for a in other_bots:
+
+                if a['location'] == (x_pos+1,y_pos):
+                    direction='E'
+                    attacker_health = a['health']
+                if a['location'] == (x_pos-1,y_pos):
+                    direction = 'W'
+                    attacker_health = a['health']
+                if a['location'] == (x_pos,y_pos+1):
+                    direction = 'S'
+                    attacker_health = a['health']
+                if a['location'] == (x_pos,y_pos-1):
+                    direction = 'N'
+                    attacker_health = a['health']
+
+            if attacker_health >hp:
                 run_to_base
             else:
                 # determine position to attack
-               return self.commands.attack()
+               return self.commands.attack(direction)
                 
                 
             
