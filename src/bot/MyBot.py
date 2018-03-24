@@ -32,6 +32,7 @@ class MyBot(Bot):
         position = character_state['location']
         base = character_state['base']
 
+        if character_state['status']
         self.my_pathfinder.set_game_state(game_state, other_bots)
 
         # Get back to base on time
@@ -66,13 +67,16 @@ class MyBot(Bot):
         # Add new position to potential target
 
         if len(potential_target) != 0:
-            lowest_hp_enemy = other_bots[0]
+            lowest_hp_enemy = potential_target[0]
             for target in potential_target:
-                if target['health'] <= lowest_hp_enemy['health']:
+                if target['health'] < lowest_hp_enemy['health']:
+                    lowest_hp_enemy = target
+                elif target['health'] == lowest_hp_enemy['health']:
                     lowest_hp_enemy = target if target['carrying'] >= lowest_hp_enemy['carrying'] else lowest_hp_enemy
 
-            # print(potential_target)
-            # print(lowest_hp_enemy)
+            print(attack_possibilities[lowest_hp_enemy['location']])
+            if hp > lowest_hp_enemy['health']:
+                return self.commands.attack(attack_possibilities[lowest_hp_enemy['location']])
 
         # Find the position of the junk on the map
         junk_position = list()
@@ -168,9 +172,9 @@ def get_attack_possibilities(game_status, x_pos, y_pos):
     if x_pos - 1 > 0:
         attack_possibilities[(y_pos, x_pos - 1)] = 'W'
     if y_pos + 1 <= len(game_status):
-        attack_possibilities[(y_pos + 1, x_pos)] = 'N'
+        attack_possibilities[(y_pos + 1, x_pos)] = 'S'
     if y_pos - 1 > 0:
-        attack_possibilities[(y_pos - 1, x_pos)] = 'S'
+        attack_possibilities[(y_pos - 1, x_pos)] = 'N'
 
     return attack_possibilities
 
@@ -180,7 +184,7 @@ def get_potential_target(other_bots, attack_possibilities):
     potential_target = list()
 
     for b in other_bots:
-        if b['location'] in attack_possibilities:
+        if b['location'] in attack_possibilities and b['location'] != b['base']:
             potential_target.append(b)
 
     return potential_target
