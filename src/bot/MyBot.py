@@ -3,6 +3,7 @@ from src.utils.Pathfinder import Pathfinder
 import networkx as nx
 from networkx.algorithms.shortest_paths import dijkstra_path, dijkstra_path_length
 from src.symbols.ObjectSymbols import ObjectSymbols
+from .Command import Command
 
 
 class MyBot(Bot):
@@ -86,6 +87,22 @@ class MyBot(Bot):
             self.end_turn_routine(hp)
             return self.commands.idle()
 
+        
+        # Defense tactic
+        # need to create old position 
+        if self.previous_health > hp and previous_position!='S':
+            #finding which bot is the one attacking
+            # get other bot ID and health
+            target_ID = other_bots.ID
+            if other_bots.health >hp:
+                run_to_base
+            else:
+                # determine position to attack
+               return self.commands.attack()
+                
+                
+            
+
 
 class MyPathfinder(Pathfinder):
 
@@ -130,3 +147,4 @@ class MyPathfinder(Pathfinder):
         graph = self.create_graph(self.game_map)
         length = dijkstra_path_length(graph, start, goal)
         return length
+
