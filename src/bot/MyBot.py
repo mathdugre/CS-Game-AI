@@ -49,12 +49,26 @@ class MyBot(Bot):
             self.end_turn_routine(hp)
             return self.commands.rest()
 
-        # Collect mineral
+        # Harass low nearby
+        game_status = game_state.splitlines()
+        potential_target = list()
+        x_pos = position[1]
+        y_pos = position[0]
+
+        # Add new position to potential target
+        if x_pos + 1 <= len(game_status[0]):
+            potential_target.append((y_pos, x_pos + 1))
+        if x_pos - 1 > 0:
+            potential_target.append((y_pos, x_pos - 1))
+        if y_pos + 1 <= len(game_status):
+            potential_target.append((y_pos + 1, x_pos))
+        if y_pos - 1 > 0:
+            potential_target.append((y_pos - 1, x_pos))
 
         # Find the position of the junk on the map
         junk_position = list()
         c = r = 0
-        for row in game_state.splitlines():
+        for row in game_status:
             if 'J' in row:
                 for column in row:
                     if 'J' == column:
@@ -74,8 +88,11 @@ class MyBot(Bot):
         # Select goal for mining
         goal = junk_position[0]
         for deposit in junk_position:
-            if self.get_path_length(position, deposit) < self.get_path_length(position, goal):
+            if self.my_pathfinder.get_path_length(position, deposit) < self.my_pathfinder.get_path_length(position,
+                                                                                                          goal):
                 goal = deposit
+
+        # When get attack
 
         # Move towards goal
         direction = self.my_pathfinder.get_next_direction(self.character_state['location'], goal)
