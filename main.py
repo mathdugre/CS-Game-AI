@@ -39,6 +39,7 @@ if __name__ == '__main__':
 
     game = Game(len(bots), os.path.join(os.getcwd(), 'maps', args.m))
 
+
     def get_other_players(player_turn, players):
         other_player = []
         for player in players:
@@ -46,12 +47,14 @@ if __name__ == '__main__':
                 other_player.append(player)
         return other_player
 
+
     def run_bot_turn(q, ai, game, character, players):
         try:
             q.put(ai.turn(game, character, players))
         except Exception as e:
             print(e)
             time.sleep(1)
+
 
     def parse_player_info(info):
         bot_state = literal_eval(info['player_info'])
@@ -69,9 +72,11 @@ if __name__ == '__main__':
             if player['id'] == player_id:
                 return player
 
+
     @app.route('/')
     def index():
         return app.send_static_file('index.html')
+
 
     @socketio.on('start')
     def start():
